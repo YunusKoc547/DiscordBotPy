@@ -1,6 +1,7 @@
 # cogs/reactions.py
 import discord
 from discord.ext import commands
+from typing import Optional, Union
 
 class ReactionCog(commands.Cog):
     """
@@ -9,16 +10,16 @@ class ReactionCog(commands.Cog):
     - Maintains ONE lineup message in-channel:
         * first join -> post lineup message
         * joins/leaves -> edit lineup message
-    - /clear: clears lineup AND disregards previous role mentions
-              (removes bot's ✅ on old anchor messages and forgets them).
+    - /clear: clears lineup, removes bot's ✅ on old anchor messages,
+              deletes the previous lineup message, and forgets it.
     """
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
 
         # ✅ configure these
-        self.target_role_ids = {776328568036392972, 1282865161945874543, 1416872124236431490}  # <-- replace with real role IDs
-        self.reaction_emoji = "✅"  # use unicode; for custom emoji, set to its ID (int) and matcher will handle it
+        self.target_role_ids = {111111111111111111, 222222222222222222}  # <-- replace with real role IDs
+        self.reaction_emoji = "✅"  # unicode; for custom emoji, set to its ID (int) and matcher will handle it
         self.max_participants = 5
 
         # lineup state
@@ -26,8 +27,8 @@ class ReactionCog(commands.Cog):
         self.participants_names: dict[int, str] = {}   # user_id -> display name
 
         # single "lineup message" we keep updating
-        self.lineup_channel_id: int | None = None
-        self.lineup_message_id: int | None = None
+        self.lineup_channel_id: Optional[int] = None
+        self.lineup_message_id: Optional[int] = None
 
         # "anchor" messages (channel_id, message_id) where the bot reacted after a role mention
         # used so only those messages accept reactions for the lineup
@@ -115,6 +116,19 @@ class ReactionCog(commands.Cog):
             self.lineup_channel_id = msg2.channel.id
             self.lineup_message_id = msg2.id
 
+    async def _delete_lineup_message(self):
+        """Delete the current lineup message if we have one, then forget pointers."""
+        if self.lineup_channel_id and self.lineup_message_id:
+            ch = self.bot.get_channel(self.lineup_channel_id)
+            if ch:
+                try:
+                    msg = await ch.fetch_message(self.lineup_message_id)
+                    await msg.delete()
+                except Exception:
+                    pass
+        self.lineup_channel_id = None
+        self.lineup_message_id = None
+
     async def _remove_bots_reaction_on(self, channel_id: int, message_id: int):
         """Remove the bot's own reaction from a message (matching our emoji)."""
         ch = self.bot.get_channel(channel_id)
@@ -149,7 +163,7 @@ class ReactionCog(commands.Cog):
                 print(f"⚠️ Reaction/anchor setup failed: {e}")
 
     @commands.Cog.listener()
-    async def on_reaction_add(self, reaction: discord.Reaction, user: discord.User | discord.Member):
+    async def on_reaction_add(self, reaction: discord.Reaction, user: Union[discord.User, discord.Member]):
         if user == self.bot.user:
             return
         if not self._emoji_matches(reaction.emoji, self.reaction_emoji):
@@ -187,7 +201,7 @@ class ReactionCog(commands.Cog):
             await self._update_lineup_message(ch)
 
     @commands.Cog.listener()
-    async def on_reaction_remove(self, reaction: discord.Reaction, user: discord.User | discord.Member):
+    async def on_reaction_remove(self, reaction: discord.Reaction, user: Union[discord.User, discord.Member]):
         if user == self.bot.user:
             return
         if not self._emoji_matches(reaction.emoji, self.reaction_emoji):
@@ -214,7 +228,7 @@ class ReactionCog(commands.Cog):
     # ----------------- slash commands -----------------
     @discord.app_commands.command(
         name="clear",
-        description="Clear the lineup and disregard previous role mention(s)."
+        description="Clear the lineup, disregard previous mentions, and delete the lineup message."
     )
     async def clear(self, interaction: discord.Interaction):
         # Defer immediately to avoid 'Unknown interaction'
@@ -230,12 +244,12 @@ class ReactionCog(commands.Cog):
         for ch_id, msg_id in anchors:
             await self._remove_bots_reaction_on(ch_id, msg_id)
 
-        # 3) Update (or create) the lineup message in this channel
-        await self._update_lineup_message(interaction.channel)
+        # 3) Delete the previous lineup message (if any) and forget pointers
+        await self._delete_lineup_message()
 
         # Finalize the deferred response
         await interaction.edit_original_response(
-            content="🧹 Lineup cleared. Old mentions are no longer active."
+            content="🧹 Lineup cleared, old mentions disabled, and the lineup message was deleted."
         )
 
 async def setup(bot: commands.Bot):
