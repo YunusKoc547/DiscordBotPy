@@ -18,7 +18,7 @@ class ReactionCog(commands.Cog):
         self.bot = bot
 
         # ✅ configure these
-        self.target_role_ids = {111111111111111111, 222222222222222222}  # <-- replace with real role IDs
+        self.target_role_ids = {776328568036392972, 1282865161945874543, 1416872124236431490}  # <-- replace with real role IDs
         self.reaction_emoji = "✅"  # unicode; for custom emoji, set to its ID (int) and matcher will handle it
         self.max_participants = 5
 
@@ -162,23 +162,23 @@ class ReactionCog(commands.Cog):
             except Exception as e:
                 print(f"⚠️ Reaction/anchor setup failed: {e}")
 
-    @commands.Cog.listener()
-    async def on_reaction_add(self, reaction: discord.Reaction, user: Union[discord.User, discord.Member]):
-        if user == self.bot.user:
-            return
-        if not self._emoji_matches(reaction.emoji, self.reaction_emoji):
-            return
-        if not self._is_anchor(reaction.message.channel.id, reaction.message.id):
-            return
+    # @commands.Cog.listener()
+    # async def on_reaction_add(self, reaction: discord.Reaction, user: Union[discord.User, discord.Member]):
+    #     if user == self.bot.user:
+    #         return
+    #     if not self._emoji_matches(reaction.emoji, self.reaction_emoji):
+    #         return
+    #     if not self._is_anchor(reaction.message.channel.id, reaction.message.id):
+    #         return
 
-        display = user.display_name if isinstance(user, discord.Member) else user.name
-        if await self._add_user(user.id, display):
-            await self._update_lineup_message(reaction.message.channel)
-        elif len(self.participants_order) >= self.max_participants:
-            try:
-                await reaction.message.channel.send("⚠️ The lineup is already full (max 5).")
-            except Exception:
-                pass
+    #     display = user.display_name if isinstance(user, discord.Member) else user.name
+    #     if await self._add_user(user.id, display):
+    #         await self._update_lineup_message(reaction.message.channel)
+    #     elif len(self.participants_order) >= self.max_participants:
+    #         try:
+    #             await reaction.message.channel.send("⚠️ The lineup is already full (max 5).")
+    #         except Exception:
+    #             pass
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload: discord.RawReactionActionEvent):
@@ -200,17 +200,17 @@ class ReactionCog(commands.Cog):
         if ch and await self._add_user(payload.user_id, display):
             await self._update_lineup_message(ch)
 
-    @commands.Cog.listener()
-    async def on_reaction_remove(self, reaction: discord.Reaction, user: Union[discord.User, discord.Member]):
-        if user == self.bot.user:
-            return
-        if not self._emoji_matches(reaction.emoji, self.reaction_emoji):
-            return
-        if not self._is_anchor(reaction.message.channel.id, reaction.message.id):
-            return
+    # @commands.Cog.listener()
+    # async def on_reaction_remove(self, reaction: discord.Reaction, user: Union[discord.User, discord.Member]):
+    #     if user == self.bot.user:
+    #         return
+    #     if not self._emoji_matches(reaction.emoji, self.reaction_emoji):
+    #         return
+    #     if not self._is_anchor(reaction.message.channel.id, reaction.message.id):
+    #         return
 
-        if await self._remove_user(user.id):
-            await self._update_lineup_message(reaction.message.channel)
+    #     if await self._remove_user(user.id):
+    #         await self._update_lineup_message(reaction.message.channel)
 
     @commands.Cog.listener()
     async def on_raw_reaction_remove(self, payload: discord.RawReactionActionEvent):

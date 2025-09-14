@@ -31,7 +31,7 @@ async def main():
     async with bot:
         # load your cogs here
         await bot.load_extension("cogs.general")
-        await bot.load_extension("cogs.messages")
+        # await bot.load_extension("cogs.messages")
         await bot.load_extension("cogs.reactions")
         await bot.start(TOKEN)
 
